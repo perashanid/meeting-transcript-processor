@@ -1,0 +1,48 @@
+Meeting Transcript - Product Planning Session
+Date: July 27, 2026
+
+John (Product Manager): Good morning everyone, thanks for joining. Let's discuss our Q4 roadmap.
+
+Sarah (Engineering Lead): Hi all. I've been reviewing the customer feedback from last quarter.
+
+Mike (Designer): Morning! I have some mockups ready to share.
+
+John: Great. So first item - we need to finalize the feature prioritization by end of this week. Sarah, can you take the lead on that?
+
+Sarah: Yes, I'll send the draft roadmap document by Friday. I'll need input from everyone though.
+
+John: Perfect. Mike, can you make sure the UI mockups are ready by Wednesday? The client presentation is Thursday and we really need those ready ASAP.
+
+Mike: Sure thing. I'll have them done by Wednesday morning. I should also follow up with the design system updates - those are overdue.
+
+Lisa (Marketing): Sorry I'm late! Just joined.
+
+John: No problem, Lisa. We were just assigning action items. We need someone to update the product documentation before launch. Lisa, could you handle that?
+
+Lisa: Absolutely. When do you need it by?
+
+John: End of next week should work. It's not super urgent but would be nice to have.
+
+Sarah: One more thing - someone needs to reach out to the beta testers. It's critical we get their feedback before we proceed.
+
+John: Good point. Mike, since you're already talking to users about the design, can you take that on too?
+
+Mike: Yeah, I can do that. I'll contact them today since it's urgent.
+
+Lisa: I should probably also schedule a meeting with the content team to align on messaging. I'll do that when I get a chance.
+
+John: Sounds good. Oh, and Sarah - don't forget we need to resolve those API integration issues by tomorrow. The client is waiting.
+
+Sarah: Right, I'll prioritize that. I'll get the integration working by end of day tomorrow.
+
+John: Excellent. Let me send out calendar invites for our follow-up meeting on August 5th.
+
+Mike: Actually, before we wrap - the engineering team mentioned they need access to the staging environment. Someone should grant those permissions.
+
+Sarah: I can handle that. I'll set up the staging access by end of today.
+
+Lisa: Great meeting everyone! Looking forward to seeing the progress.
+
+John: Thanks all. Let's make Q4 amazing!
+
+[End of transcript]
