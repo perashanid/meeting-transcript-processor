@@ -1,0 +1,210 @@
+{
+  "automation_flow": {
+    "name": "Meeting Transcript to Task Manager",
+    "description": "Automatically extract action items from meeting transcripts and create tasks in project management tools",
+    "steps": [
+      {
+        "step": 1,
+        "module": "Trigger",
+        "app": "Zoom/Google Meet/Fireflies/Otter.ai",
+        "event": "New Recording Available",
+        "config": {
+          "webhook_url": "https://your-server.com/webhook/transcript",
+          "filters": {
+            "recording_type": "transcript",
+            "status": "completed"
+          }
+        }
+      },
+      {
+        "step": 2,
+        "module": "HTTP Request",
+        "action": "GET Transcript",
+        "config": {
+          "url": "{{trigger.transcript_url}}",
+          "method": "GET",
+          "headers": {
+            "Authorization": "Bearer {{connection.access_token}}"
+          }
+        },
+        "output": {
+          "transcript_text": "{{response.transcript}}",
+          "meeting_date": "{{response.date}}"
+        }
+      },
+      {
+        "step": 3,
+        "module": "Webhook",
+        "action": "POST to Processor",
+        "config": {
+          "url": "https://your-server.com/webhook/transcript",
+          "method": "POST",
+          "body": {
+            "transcript": "{{step2.transcript_text}}",
+            "meeting_date": "{{step2.meeting_date}}",
+            "meeting_id": "{{trigger.meeting_id}}",
+            "attendees": "{{trigger.participants}}"
+          }
+        },
+        "output": {
+          "action_items": "{{response.action_items}}",
+          "summary": "{{response.summary}}",
+          "meeting_date": "{{response.meeting_date}}"
+        }
+      },
+      {
+        "step": 4,
+        "module": "Router",
+        "description": "Create task for each action item",
+        "iterate_over": "{{step3.action_items}}",
+        "routes": [
+          {
+            "condition": "For each item in action_items array",
+            "steps": [
+              {
+                "step": "4a",
+                "module": "Asana/Trello/ClickUp",
+                "action": "Create Task",
+                "config": {
+                  "project_id": "{{env.PROJECT_ID}}",
+                  "task_name": "{{item.task_description}}",
+                  "assignee": "{{lookup(item.owner, assignee_mapping)}}",
+                  "due_date": "{{item.due_date}}",
+                  "priority": "{{item.priority}}",
+                  "description": "{{item.context}}\n\nFrom meeting: {{step3.meeting_date}}",
+                  "tags": ["meeting-action", "{{step3.meeting_date}}"]
+                },
+                "assignee_mapping": {
+                  "description": "Map names from transcript to user IDs in task manager",
+                  "example": {
+                    "Sarah": "user_12345",
+                    "John": "user_67890",
+                    "Mike": "user_11111",
+                    "UNASSIGNED": null
+                  }
+                },
+                "output": {
+                  "task_id": "{{response.id}}",
+                  "task_url": "{{response.url}}"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "step": 5,
+        "module": "Text Aggregator",
+        "action": "Compile Task List",
+        "config": {
+          "source": "{{step4.*.task_url}}",
+          "separator": "\n"
+        },
+        "output": {
+          "all_task_links": "{{aggregated_text}}"
+        }
+      },
+      {
+        "step": 6,
+        "module": "Gmail/Outlook",
+        "action": "Send Email",
+        "config": {
+          "to": "{{step3.attendees}}",
+          "subject": "Action Items from Meeting - {{step3.meeting_date}}",
+          "body_html": "{{template.email_template}}"
+        },
+        "template": {
+          "email_template": "Hi team,\n\nHere's a summary of action items from our meeting on {{step3.meeting_date}}:\n\n**Meeting Summary:**\n{{step3.summary}}\n\n**Action Items:**\n{{#each step3.action_items}}\n- [{{this.priority}}] {{this.task_description}}\n  - Owner: {{this.owner}}\n  - Due: {{this.due_date}}\n  - Context: {{this.context}}\n  - Link: {{lookup ../step4 @index 'task_url'}}\n{{/each}}\n\nAll tasks have been created in [Project Manager]. Please review and update as needed.\n\nBest regards,\nAutomated Meeting Assistant"
+        }
+      },
+      {
+        "step": 7,
+        "module": "Delay",
+        "action": "Wait Until",
+        "description": "Set up reminders for tasks approaching due date",
+        "note": "This step needs to be duplicated for each task with a due_date"
+      },
+      {
+        "step": 8,
+        "module": "Router",
+        "description": "Send reminders for tasks with due dates",
+        "iterate_over": "{{step4.*.task_id}}",
+        "routes": [
+          {
+            "condition": "For each task",
+            "steps": [
+              {
+                "step": "8a",
+                "module": "Delay Until",
+                "config": {
+                  "date": "{{subtractTime(item.due_date, 48, 'hours')}}"
+                }
+              },
+              {
+                "step": "8b",
+                "module": "Asana/Trello/ClickUp",
+                "action": "Get Task",
+                "config": {
+                  "task_id": "{{item.task_id}}"
+                },
+                "output": {
+                  "task_status": "{{response.status}}"
+                }
+              },
+              {
+                "step": "8c",
+                "module": "Filter",
+                "condition": "{{step8b.task_status}} != 'Complete' AND {{step8b.task_status}} != 'Done'"
+              },
+              {
+                "step": "8d",
+                "module": "Slack/Email",
+                "action": "Send Reminder",
+                "config": {
+                  "recipient": "{{item.owner}}",
+                  "message": "⏰ Reminder: Your task '{{item.task_description}}' is due in 48 hours ({{item.due_date}}). Current status: {{step8b.task_status}}\n\nTask link: {{item.task_url}}"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "zapier_specific_notes": {
+    "trigger_apps": [
+      "Zoom - New Recording",
+      "Google Meet - Recording Available (via Google Drive trigger)",
+      "Fireflies.ai - New Transcript",
+      "Otter.ai - Transcript Ready"
+    ],
+    "required_connections": [
+      "Zoom/Google Meet/Fireflies",
+      "Asana/Trello/ClickUp/Monday.com",
+      "Gmail/Outlook",
+      "Slack (for reminders)"
+    ],
+    "premium_features_needed": [
+      "Multi-step Zaps (requires paid plan)",
+      "Looping/Iteration (requires paid plan)",
+      "Delay Until (requires paid plan)"
+    ],
+    "setup_instructions": [
+      "1. Deploy webhook_handler.py to a public server (Heroku, AWS, etc.)",
+      "2. Configure webhook URL in Zapier",
+      "3. Set up assignee mapping table in Zapier Storage or Google Sheets",
+      "4. Create email template in Zapier",
+      "5. Configure Slack/email notification preferences",
+      "6. Test with sample transcript before going live"
+    ]
+  },
+  "make_com_alternative": {
+    "note": "Make.com (formerly Integromat) supports similar functionality with better array handling",
+    "advantages": [
+      "Better visual flow builder",
+      "Native array iteration without premium features",
+      "More flexible data transformation",
+      "Built-in error handling and retry logic"
+    ]
+  }
+}
